@@ -131,10 +131,14 @@ def test_types():
     assert e.c4.a1 == 2
     assert e.a8 == "10"
     assert e.a9 is None
-    with pytest.raises(ValueError, match=re.escape("Missing required values ['a5', 'c3', 'c4'].")):
+    with pytest.raises(
+        ValueError, match=re.escape("Missing required values ['a5', 'c3', 'c4'].")
+    ):
         MultiTypeConfig()
 
-    with pytest.raises(ValueError, match=re.escape("invalid literal for int() with base 10: '2.2'")):
+    with pytest.raises(
+        ValueError, match=re.escape("invalid literal for int() with base 10: '2.2'")
+    ):
         MultiTypeConfig(a5={"a": 1}, c3={"a1": 2.4}, c4={"a1": "2.2"})
 
 
@@ -151,7 +155,10 @@ def test_error_configs():
         ),
         (
             ErrorConfigTupleLen,
-            "Incompatible lengths for a4 between (10, 'a', 'a') and type_hint: (<class 'int'>, <class 'str'>)",
+            (
+                "Incompatible lengths for a4 between (10, 'a', 'a') and type_hint:"
+                " (<class 'int'>, <class 'str'>)"
+            ),
         ),
         (ErrorConfigTuple, "invalid literal for int() with base 10: '2.1'"),
         (ErrorConfigEnum, "b is not supported by <enum 'myEnum'>"),
@@ -167,10 +174,16 @@ def test_error_configs():
         ),
         (
             ErrorConfigHintOrder,
-            "Invalid collection <class 'config.types.Derived'>. type_hints must be structured as:",
+            (
+                "Invalid collection <class 'config.types.Derived'>. type_hints must be"
+                " structured as:"
+            ),
         ),
         (ErrorConfigType, "invalid literal for int() with base 10: '2.2'"),
-        (lambda: ErrorConfigList(a4=(11,)), "Invalid type <class 'tuple'> for type List"),
+        (
+            lambda: ErrorConfigList(a4=(11,)),
+            "Invalid type <class 'tuple'> for type List",
+        ),
         (lambda: ErrorConfigList(a4=11), "Invalid type <class 'int'> for type List"),
         (lambda: ErrorConfigList(a4="11"), "Invalid type <class 'str'> for type List"),
     ]

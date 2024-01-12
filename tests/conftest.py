@@ -25,7 +25,9 @@ def capture_logger():
     return _capture_logger
 
 
-def fns_requires_kwargs(test_fns: list[abc.Callable], *kwarg_names, **existing_kwargs) -> bool:
+def fns_requires_kwargs(
+    test_fns: list[abc.Callable], *kwarg_names, **existing_kwargs
+) -> bool:
     """
     Check whether the fns require any of the `kwargs_names` that is not
     present in the `existing_kwargs`. Used when a kwarg_name is missing to
@@ -45,13 +47,11 @@ def fns_requires_kwargs(test_fns: list[abc.Callable], *kwarg_names, **existing_k
     bool
         whether any of the kwarg_names is required by any of the test_fns.
     """
-    return any(
-        [
-            p in list(kwarg_names) and p not in existing_kwargs
-            for fn in test_fns
-            for p in inspect.signature(fn).parameters
-        ]
-    )
+    return any([
+        p in list(kwarg_names) and p not in existing_kwargs
+        for fn in test_fns
+        for p in inspect.signature(fn).parameters
+    ])
 
 
 def run_tests_local(

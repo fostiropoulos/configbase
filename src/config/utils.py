@@ -7,7 +7,9 @@ from collections import abc
 from functools import reduce
 
 
-def flatten_nested_dict(dict_: dict, expand_list: bool = True, seperator: str = ".") -> dict[str, ty.Any]:
+def flatten_nested_dict(
+    dict_: dict, expand_list: bool = True, seperator: str = "."
+) -> dict[str, ty.Any]:
     """
     Flattens a nested dictionary, expanding lists and tuples if specified.
 
@@ -50,7 +52,9 @@ def flatten_nested_dict(dict_: dict, expand_list: bool = True, seperator: str = 
     return flatten_dict
 
 
-def dict_hash(*dictionaries: list[dict[str, ty.Any]] | dict[str, ty.Any], hash_len: int = 4) -> str:
+def dict_hash(
+    *dictionaries: list[dict[str, ty.Any]] | dict[str, ty.Any], hash_len: int = 4
+) -> str:
     """
     Calculates the MD5 hash of one or more dictionaries.
 
@@ -73,7 +77,10 @@ def dict_hash(*dictionaries: list[dict[str, ty.Any]] | dict[str, ty.Any], hash_l
     >>> dict_hash(dict1, dict2)
     '6d75e6'
     """
-    concat_dictionaries = [copy.deepcopy(_) if isinstance(_, dict) else copy.deepcopy(_).__dict__ for _ in dictionaries]
+    concat_dictionaries = [
+        copy.deepcopy(_) if isinstance(_, dict) else copy.deepcopy(_).__dict__
+        for _ in dictionaries
+    ]
     dictionary = reduce(lambda a, b: {**a, **b}, concat_dictionaries)
     dhash = hashlib.md5()
     # We need to sort arguments so {'a': 1, 'b': 2} is
@@ -117,7 +124,9 @@ def _parse_ast_repr(str_repr):
 
     # Extract the arguments from the function call node
     args = tuple(ast.literal_eval(arg) for arg in func_call_node.args)
-    kwargs = {str(arg.arg): ast.literal_eval(arg.value) for arg in func_call_node.keywords}
+    kwargs = {
+        str(arg.arg): ast.literal_eval(arg.value) for arg in func_call_node.keywords
+    }
     return args, kwargs
 
 
@@ -178,7 +187,9 @@ def parse_repr_to_kwargs(
     )
 
 
-def augment_trial_kwargs(trial_kwargs: dict[str, ty.Any], augmentation: dict[str, ty.Any]) -> dict[str, ty.Any]:
+def augment_trial_kwargs(
+    trial_kwargs: dict[str, ty.Any], augmentation: dict[str, ty.Any]
+) -> dict[str, ty.Any]:
     """
     Augment the ``trial_kwargs`` with additional key-value pairs specified in the augmentation dictionary.
 
@@ -205,7 +216,9 @@ def augment_trial_kwargs(trial_kwargs: dict[str, ty.Any], augmentation: dict[str
     config_dot_path: str
     dot_paths = list(augmentation.keys())
 
-    assert len(set(dot_paths)) == len(dot_paths), f"Duplicate tune paths: {set(dot_paths).difference(dot_paths)}"
+    assert len(set(dot_paths)) == len(
+        dot_paths
+    ), f"Duplicate tune paths: {set(dot_paths).difference(dot_paths)}"
     for config_dot_path, val in augmentation.items():
         path: list[str] = config_dot_path.split(".")
         trial_kwargs = nested_set(trial_kwargs, path, val)

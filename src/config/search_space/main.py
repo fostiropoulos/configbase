@@ -1,16 +1,17 @@
+from collections import abc
 import typing as ty
-from config.main import ConfigBase, configclass
+
 
 import copy
-import typing as ty
+
 import numpy as np
 
 
 class Distribution:
     low: int | float
     high: int | float
-    n_bins: int | float
-    dtype: ty.Type = float
+    n_bins: int
+    dtype: type = float
     log_scale: bool = False
 
     def __init__(self, low, high, n_bins, log_scale=False, dtype: str = "float") -> None:
@@ -20,6 +21,7 @@ class Distribution:
         self.n_bins = int(n_bins)
         if self.n_bins <= 0:
             raise ValueError("`n_bins` must be greater than 0.")
+        # pylint: disable=eval-used
         self.dtype = eval(dtype)
         self.log_scale = log_scale
 
@@ -31,6 +33,7 @@ class Distribution:
             raise ValueError("Invalid arguments. low>=0 when setting `log_scale` to 'True'")
 
     def expand(self) -> list[float | int]:
+        space_fn: abc.Callable
         if not self.log_scale:
             space_fn = np.linspace
         else:
@@ -95,16 +98,18 @@ class SearchSpace:
         return _sample_params(self, prefix=prefix)
 
 
+# pylint: disable=unused-argument
 def random_sample(name, dist: Distribution | CategoricalDistribution):
     return dist.random_sample()
 
 
 def expand_item(
     configs: list[dict[str, str | int | float | dict]],
-    value: dict[str, SearchSpace] | SearchSpace | ty.Any,
+    value: dict[str, Distribution | CategoricalDistribution | ty.Any] | SearchSpace | ty.Any,
     key,
 ) -> list:
     _configs = []
+    expanded_space: list[ty.Any]
     if isinstance(value, dict):
         expanded_space = expand_dict(value)
     elif isinstance(value, SearchSpace):
@@ -124,7 +129,9 @@ def expand_item(
     return _configs
 
 
-def expand_dict(search_space: dict[str, "SearchSpace"]) -> list[dict[str, str | int | float | dict]]:
+def expand_dict(
+    search_space: dict[str, Distribution | CategoricalDistribution | ty.Any]
+) -> list[dict[str, str | int | float | dict]]:
     configs: list[dict[str, str | int | float | dict]] = [{}]
 
     for k, v in search_space.items():

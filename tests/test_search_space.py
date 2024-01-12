@@ -10,9 +10,6 @@ import numpy as np
 import pytest
 
 
-from config.search_space import SearchSpace
-
-
 class Pass:
     def __init__(self, a=10) -> None:
         self.a = a
@@ -67,63 +64,70 @@ def test_expand_search_space():
     n_bins = 5
     space = SearchSpace({"a": Distribution(-10, 10, 5)})
     len(space.expand()) == n_bins + 1
-    assert (np.array([a["a"] for a in space.expand()]) == np.linspace(-10, 10, n_bins + 1)).all()
-
-    space = SearchSpace({"a": Distribution(-10, 10, n_bins), "b": Distribution(-1, 1, n_bins)})
-    assert len(space.expand()) == (n_bins + 1) ** 2
+    assert (
+        np.array([a["a"] for a in space.expand()]) == np.linspace(-10, 10, n_bins + 1)
+    ).all()
 
     space = SearchSpace(
-        {"a": Distribution(-10, 10, n_bins), "b": Distribution(-1, 1, n_bins), "c": CategoricalDistribution(["a", "b"])}
+        {"a": Distribution(-10, 10, n_bins), "b": Distribution(-1, 1, n_bins)}
     )
+    assert len(space.expand()) == (n_bins + 1) ** 2
+
+    space = SearchSpace({
+        "a": Distribution(-10, 10, n_bins),
+        "b": Distribution(-1, 1, n_bins),
+        "c": CategoricalDistribution(["a", "b"]),
+    })
 
     assert len(space.expand()) == (n_bins + 1) ** 2 * 2
 
-    space = SearchSpace(
-        {
-            "a": Distribution(-10, 10, n_bins),
-            "b": Distribution(-1, 1, n_bins),
-            "c": CategoricalDistribution([Distribution(-1, 1, n_bins), "b"]),
-        }
-    )
+    space = SearchSpace({
+        "a": Distribution(-10, 10, n_bins),
+        "b": Distribution(-1, 1, n_bins),
+        "c": CategoricalDistribution([Distribution(-1, 1, n_bins), "b"]),
+    })
 
     assert len(space.expand()) == (n_bins + 1) ** 2 + (n_bins + 1) ** 3
 
-    space = SearchSpace(
-        {
-            "a": Distribution(-10, 10, n_bins),
-            "b": Distribution(-1, 1, n_bins),
-            "c": CategoricalDistribution([Distribution(-1, 1, n_bins), "b"]),
-            "d": SearchSpace({"c": Distribution(-10, 10, n_bins)}),
-        }
-    )
+    space = SearchSpace({
+        "a": Distribution(-10, 10, n_bins),
+        "b": Distribution(-1, 1, n_bins),
+        "c": CategoricalDistribution([Distribution(-1, 1, n_bins), "b"]),
+        "d": SearchSpace({"c": Distribution(-10, 10, n_bins)}),
+    })
 
     assert len(space.expand()) == ((n_bins + 1) ** 2 + (n_bins + 1) ** 3) * (n_bins + 1)
 
-    space = SearchSpace(
-        {
-            "a": Distribution(-10, 10, n_bins),
-            "b": Distribution(-1, 1, n_bins),
-            "c": CategoricalDistribution(
-                [
-                    Distribution(-1, 1, n_bins),
-                    SearchSpace({"c": Distribution(-10, 10, n_bins), "b": Distribution(-1, 1, n_bins)}),
-                    "b",
-                ]
+    space = SearchSpace({
+        "a": Distribution(-10, 10, n_bins),
+        "b": Distribution(-1, 1, n_bins),
+        "c": CategoricalDistribution([
+            Distribution(-1, 1, n_bins),
+            SearchSpace(
+                {"c": Distribution(-10, 10, n_bins), "b": Distribution(-1, 1, n_bins)}
             ),
-            "d": SearchSpace({"c": Distribution(-10, 10, n_bins)}),
-        }
-    )
+            "b",
+        ]),
+        "d": SearchSpace({"c": Distribution(-10, 10, n_bins)}),
+    })
 
-    assert len(space.expand()) == ((n_bins + 1) ** 2 + (n_bins + 1) ** 3 + (n_bins + 1) ** 4) * (n_bins + 1)
+    assert len(space.expand()) == (
+        (n_bins + 1) ** 2 + (n_bins + 1) ** 3 + (n_bins + 1) ** 4
+    ) * (n_bins + 1)
 
 
 def test_distribution():
     with pytest.raises(ValueError, match=re.escape("`n_bins` must be greater than 0.")):
         a = Distribution(-10, 10, 0)
-    with pytest.raises(ValueError, match=re.escape("Invalid arguments. low>=high for Distribution.")):
+    with pytest.raises(
+        ValueError, match=re.escape("Invalid arguments. low>=high for Distribution.")
+    ):
         a = Distribution(10, -10, 5)
 
-    with pytest.raises(ValueError, match=re.escape("Invalid arguments. low>=0 when setting `log_scale` to 'True'")):
+    with pytest.raises(
+        ValueError,
+        match=re.escape("Invalid arguments. low>=0 when setting `log_scale` to 'True'"),
+    ):
         a = Distribution(-10, 10, 5, log_scale=True)
 
     for n_bins in [1, 100, 200]:
@@ -153,7 +157,10 @@ def test_distribution():
 
 
 def test_cat_distribution():
-    with pytest.raises(ValueError, match=re.escape("Must provide at least one item for CategoricalDistribution")):
+    with pytest.raises(
+        ValueError,
+        match=re.escape("Must provide at least one item for CategoricalDistribution"),
+    ):
         a = CategoricalDistribution([])
 
     items = ["a", 0, {"xx": "xx"}, Pass()]
@@ -168,16 +175,17 @@ def test_cat_distribution():
 def test_expand_config():
     uniform = Distribution(0, 1, 1)
     uniform_int = Distribution(0, 10, 1, dtype="int")
-    s = SearchSpace(
-        {
-            "a.b.c": uniform,
-            "a.b.e": CategoricalDistribution(
-                [{"d": uniform}, {"d": uniform_int}, SearchSpace({"d": uniform, "g": uniform_int}), {"c": 1}]
-            ),
-            "a.b.d": CategoricalDistribution([{"aa": "b"}]),
-            "d": 0.1,
-        }
-    )
+    s = SearchSpace({
+        "a.b.c": uniform,
+        "a.b.e": CategoricalDistribution([
+            {"d": uniform},
+            {"d": uniform_int},
+            SearchSpace({"d": uniform, "g": uniform_int}),
+            {"c": 1},
+        ]),
+        "a.b.d": CategoricalDistribution([{"aa": "b"}]),
+        "d": 0.1,
+    })
 
     m = Master()
     configs = m.expand(s)

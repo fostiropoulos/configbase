@@ -149,7 +149,9 @@ class Optional(ty.Generic[T]):
 
 # Support for nested objects
 class Self:
-    ...
+    """
+    Support for self-referencing objects
+    """
 
 
 Type = type
@@ -605,7 +607,8 @@ def parse_value(
 class Stateful(ty.Generic[T]):
     """
     This is for attributes that are fixed between saving and loading. By default, we assume that
-    primitive-typed attributes are stateful. Unlike ``Derived`` and ``Stateless``, in which you have to annotate attributes with these classes,
+    primitive-typed attributes are stateful. Unlike ``Derived`` and ``Stateless``, in which you
+    have to annotate attributes with these classes,
     e.g. ``attr: Statess[int]`` or ``attr: Statess[List[str]]``, for stateful, just define them without
     ``Stateful``, e.g ``attr: int`` or ``attr: List[str]``.
 
@@ -631,7 +634,8 @@ class Stateful(ty.Generic[T]):
 
 class Derived(ty.Generic[T]):
     """
-    ``Derived`` is used for attributes that are derived during executing. To make an attribute derived, wrap ``Derived`` around its type definition, e.g
+    ``Derived`` is used for attributes that are derived during executing. To make an
+    attribute derived, wrap ``Derived`` around its type definition, e.g
     ``Derived[List[int]]``, ``Derived[str]``.
 
     Examples

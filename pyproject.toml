@@ -33,6 +33,7 @@ dev = [
     "codecov-cli",
     "pytest-cov",
     "pytest-xdist",
+    "types-PyYAML"
 ]
 [project.urls]
 

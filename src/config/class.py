@@ -5,12 +5,10 @@ def _repr(self):
     return (
         type(self).__name__
         + "("
-        + ", ".join(
-            [
-                f"{k}='{v}'" if isinstance(v, str) else f"{k}={repr(v)}"
-                for k, v in self.to_dict(_repr=True).items()
-            ]
-        )
+        + ", ".join([
+            f"{k}='{v}'" if isinstance(v, str) else f"{k}={repr(v)}"
+            for k, v in self.to_dict(_repr=True).items()
+        ])
         + ")"
     )
 
@@ -96,5 +94,3 @@ class ConfigClass:
 
     def __repr__(self) -> str:
         return _repr(self)
-
-
