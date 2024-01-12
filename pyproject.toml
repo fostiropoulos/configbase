@@ -12,7 +12,7 @@ namespaces = false
 
 [project]
 
-name = "configbase"
+name = "config"
 
 authors = [{ name = "Iordanis Fostiropoulos", email = "mail@iordanis.me" }]
 
@@ -28,7 +28,7 @@ license = { text = "proprietary" }
 dev = ["mypy", "flake8", "pytest", "black", "pylint"]
 [project.urls]
 
-homepage = ""
+homepage = "https://iordanis.me"
 
 [tool.setuptools.dynamic]
-version = { attr = "configbase.__version__" }
+version = { attr = "config.__version__" }
