@@ -11,7 +11,6 @@ import numpy as np
 import pytest
 
 
-
 def _capture_logger():
     out = io.StringIO()
     logger = logging.getLogger()
