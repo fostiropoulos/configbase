@@ -20,7 +20,7 @@ keywords = []
 description = "A Typed, Compositional Configuration Library"
 requires-python = ">=3.10"
 readme = "README.md"
-dependencies = []
+dependencies = ["numpy"]
 license = { text = "proprietary" }
 
 [project.optional-dependencies]
@@ -33,7 +33,7 @@ dev = [
     "codecov-cli",
     "pytest-cov",
     "pytest-xdist",
-    "types-PyYAML"
+    "types-PyYAML",
 ]
 [project.urls]
 
