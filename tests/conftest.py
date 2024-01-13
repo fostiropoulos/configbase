@@ -10,7 +10,6 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-import torch
 
 
 def _capture_logger():
@@ -88,7 +87,6 @@ def run_tests_local(
     """
     random.seed(1)
     np.random.seed(1)
-    torch.manual_seed(1)
     import shutil
 
     fn_names = [fn for fn in locals if fn.startswith("test_")]
