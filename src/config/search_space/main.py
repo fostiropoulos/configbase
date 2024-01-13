@@ -14,7 +14,9 @@ class Distribution:
     dtype: type = float
     log_scale: bool = False
 
-    def __init__(self, low, high, n_bins, log_scale=False, dtype: str = "float") -> None:
+    def __init__(
+        self, low, high, n_bins, log_scale=False, dtype: str = "float"
+    ) -> None:
 
         if dtype not in {"float", "int"}:
             raise ValueError("Support only for `float` and `int` distribution.")
@@ -30,7 +32,9 @@ class Distribution:
         if self.low > self.high:
             raise ValueError(f"Invalid arguments. low>=high for {type(self).__name__}.")
         if self.log_scale and self.low <= 0:
-            raise ValueError("Invalid arguments. low>=0 when setting `log_scale` to 'True'")
+            raise ValueError(
+                "Invalid arguments. low>=0 when setting `log_scale` to 'True'"
+            )
 
     def expand(self) -> list[float | int]:
         space_fn: abc.Callable
@@ -38,7 +42,15 @@ class Distribution:
             space_fn = np.linspace
         else:
             space_fn = np.geomspace
-        return sorted(list(set(space_fn(self.low, self.high, num=self.n_bins + 1).astype(self.dtype))))
+        return sorted(
+            list(
+                set(
+                    space_fn(self.low, self.high, num=self.n_bins + 1).astype(
+                        self.dtype
+                    )
+                )
+            )
+        )
 
     def random_sample(self) -> float | int:
         return self.dtype(np.random.choice(self.expand()))
@@ -53,7 +65,9 @@ class CategoricalDistribution:
     def __init__(self, choices) -> None:
         self.choices = list(choices)
         if len(self.choices) == 0:
-            raise ValueError(f"Must provide at least one item for {type(self).__name__}")
+            raise ValueError(
+                f"Must provide at least one item for {type(self).__name__}"
+            )
 
     def expand(self) -> list:
         return self.choices
@@ -67,7 +81,9 @@ class CategoricalDistribution:
 
 
 class SearchSpace:
-    def __init__(self, search_space: dict[str, Distribution | CategoricalDistribution]) -> None:
+    def __init__(
+        self, search_space: dict[str, Distribution | CategoricalDistribution]
+    ) -> None:
         self.search_space = search_space
 
     def expand(self):
@@ -88,11 +104,17 @@ class SearchSpace:
             if isinstance(kwargs, CategoricalDistribution):
                 kwargs = sample_fn(name=prefix, dist=kwargs)
             if isinstance(kwargs, dict):
-                return {_k: _sample_params(_v, prefix=f"{prefix}.{_k}") for _k, _v in kwargs.items()}
+                return {
+                    _k: _sample_params(_v, prefix=f"{prefix}.{_k}")
+                    for _k, _v in kwargs.items()
+                }
             if isinstance(kwargs, Distribution):
                 return sample_fn(name=prefix, dist=kwargs)
             if isinstance(kwargs, SearchSpace):
-                return {_k: _sample_params(_v, prefix=f"{prefix}.{_k}") for _k, _v in kwargs.search_space.items()}
+                return {
+                    _k: _sample_params(_v, prefix=f"{prefix}.{_k}")
+                    for _k, _v in kwargs.search_space.items()
+                }
             return kwargs
 
         return _sample_params(self, prefix=prefix)
@@ -105,7 +127,11 @@ def random_sample(name, dist: Distribution | CategoricalDistribution):
 
 def expand_item(
     configs: list[dict[str, str | int | float | dict]],
-    value: dict[str, Distribution | CategoricalDistribution | ty.Any] | SearchSpace | ty.Any,
+    value: (
+        dict[str, Distribution | CategoricalDistribution | ty.Any]
+        | SearchSpace
+        | ty.Any
+    ),
     key,
 ) -> list:
     _configs = []
