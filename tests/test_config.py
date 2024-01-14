@@ -289,7 +289,7 @@ def test_attrs(tmp_path: Path):
     p2 = NestedParentConfigInit()
     assert p2.annotations["b1"].variable_type == ParentTestConfig2
     with pytest.raises(ValueError, match="Does not support forward"):
-        fp = ForwardConfig(forward_ref=p2)
+        ForwardConfig(forward_ref=p2)
 
 
 def test_set_attr():
