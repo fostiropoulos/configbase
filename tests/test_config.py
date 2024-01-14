@@ -9,7 +9,6 @@ import pytest
 
 from config import (
     Annotation,
-    ConfigBase,
     Derived,
     Dict,
     Enum,
@@ -17,7 +16,7 @@ from config import (
     Stateful,
     Stateless,
     Type,
-    configclass,
+    config,
 )
 from config.types import List
 from config.utils import parse_repr_to_kwargs
@@ -114,8 +113,8 @@ class Pass:
         return False
 
 
-@configclass
-class SimpleConfig(ConfigBase):
+@config
+class SimpleConfig:
     a1: int = 10
 
 
@@ -123,8 +122,8 @@ class myEnum(Enum):
     A = "a"
 
 
-@configclass
-class ParentTestConfig(ConfigBase):
+@config
+class ParentTestConfig:
     a1: int = 10
     a2: str = 10
     a8: Derived[Optional[str]] = 10
@@ -137,12 +136,12 @@ class ParentTestConfig(ConfigBase):
     a6: myEnum = "a"
 
 
-@configclass
+@config
 class ParentTestConfig2(ParentTestConfig):
     a10: Stateless[int] = 10
 
 
-@configclass
+@config
 class ParentTestConfig3(ParentTestConfig):
     a6: Pass = Pass()
     a2: int = 5
@@ -150,19 +149,19 @@ class ParentTestConfig3(ParentTestConfig):
     a10: str = "10"
 
 
-@configclass
+@config
 class ParentTestConfig4(ParentTestConfig3):
     b1: Pass
 
 
-@configclass
-class NestedParentConfig(ConfigBase):
+@config
+class NestedParentConfig:
     b1: ParentTestConfig4
     a1: str
 
 
-@configclass
-class NestedParentConfig2(ConfigBase):
+@config
+class NestedParentConfig2:
     b1: ParentTestConfig3
 
 
@@ -175,8 +174,8 @@ class NestedParentConfigInit(NestedParentConfig2):
     b1: ParentTestConfig2 = ParentTestConfig2()
 
 
-@configclass
-class DictEnumConfig(ConfigBase):
+@config
+class DictEnumConfig:
     a: Dict[myEnum]
     p: Path = Path("/tmp/")
 
@@ -207,8 +206,8 @@ annotations = {
 }
 
 
-@configclass
-class EmptyConfig(ConfigBase):
+@config
+class EmptyConfig:
     pass
 
 
@@ -316,10 +315,30 @@ def test_set_attr():
     assert c.a5.a == 5
 
 
+def test_inheritence():
+    with pytest.raises(
+        ValueError,
+        match=re.escape("Can not over-ride protected function name `__init__`."),
+    ):
+
+        @config
+        class C:
+            a: int = 5
+
+            def __init__(self) -> None:
+                pass
+
+    @config
+    class C2:
+        a: int = 5
+
+    c = C2(a=4)
+    assert c.a == 4
+
+
 def test_freeze_unfreeze():
     c = copy.deepcopy(ParentTestConfig(a10=""))
     c.freeze()
-
     with pytest.raises(
         RuntimeError,
         match=re.escape(
@@ -327,7 +346,7 @@ def test_freeze_unfreeze():
         ),
     ):
         c.a10 = "1"
-    c._unfreeze()
+    c.unfreeze()
     c.a10 = "1"
     c.freeze()
 
@@ -354,7 +373,7 @@ def test_freeze_unfreeze():
         ),
     ):
         c.c2.a1 = 0
-    c._unfreeze()
+    c.unfreeze()
 
     c.a5.a = 54
     assert c.a5.a == 54

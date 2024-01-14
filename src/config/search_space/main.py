@@ -8,6 +8,36 @@ import numpy as np
 
 
 class Distribution:
+    """
+     Distribution class that represents a numerical distribution within
+     a specified range and step interval.
+
+    Parameters
+    ----------
+    low : int | float
+        the lower range of the distribution. It is inclusive.
+    high : int | float
+        the upper range of the distribution. It is inclusive.
+    n_bins : int
+        the number of discritization intervals, aka `bins`, from which to sample.
+    log_scale : bool, optional
+        whether to sample from the log-scale. It implies that there is a higher probability
+        to sample values on the lower range. When setting to true, `low` must be >=0, by default False
+    dtype : str, optional
+        the data-type of the distribution must be `float` or `int`, by default "float"
+
+    Raises
+    ------
+    ValueError
+        When unsupported `dtype` is provided.
+    ValueError
+        When `n_bins` is not > 0
+    ValueError
+        When low>=high
+    ValueError
+        When `log_scale` is ``True`` but low is not >= 0
+    """
+
     low: int | float
     high: int | float
     n_bins: int
@@ -15,7 +45,12 @@ class Distribution:
     log_scale: bool = False
 
     def __init__(
-        self, low, high, n_bins, log_scale=False, dtype: str = "float"
+        self,
+        low: int | float,
+        high: int | float,
+        n_bins: int,
+        log_scale: bool = False,
+        dtype: str = "float",
     ) -> None:
 
         if dtype not in {"float", "int"}:
@@ -60,9 +95,27 @@ class Distribution:
 
 
 class CategoricalDistribution:
+    """
+    CategoricalDistribution represents discrete outcomes that can be indepedent of each other.
+    For example, one can sample two entirely different sub-configurations. It can be thought
+    as implementing conditional logic.
+
+    Parameters
+    ----------
+    choices : list[ty.Any]
+        the number of discrete outcomes to sample from. The items can be of any type and
+        inhomegenous types.
+
+    Raises
+    ------
+    ValueError
+        When choices does not contain any elements.
+    """
+
     choices: list
 
-    def __init__(self, choices) -> None:
+    def __init__(self, choices: list[ty.Any]) -> None:
+
         self.choices = list(choices)
         if len(self.choices) == 0:
             raise ValueError(

@@ -19,4 +19,6 @@ from config.types import (
     Tuple,
 )
 
-from config.main import configclass, ConfigBase
+from config.main import config
+
+from config.search_space.main import Distribution, CategoricalDistribution, SearchSpace

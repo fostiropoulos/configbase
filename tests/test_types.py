@@ -1,7 +1,6 @@
 import typing as ty
 
 from config import (
-    ConfigBase,
     Derived,
     Dict,
     Enum,
@@ -9,27 +8,27 @@ from config import (
     Literal,
     Optional,
     Tuple,
-    configclass,
+    config,
 )
 import pytest
 import re
 
 
-@configclass
-class SimpleConfig(ConfigBase):
+@config
+class SimpleConfig:
     a1: int = 10
 
 
-@configclass
-class ParentTestConfig(ConfigBase):
+@config
+class ParentTestConfig:
     a1: int = 10
     c: SimpleConfig
     c2: SimpleConfig
     a2: str = 10
 
 
-@configclass
-class ParentTestTestConfig(ConfigBase):
+@config
+class ParentTestTestConfig:
     a1: Derived[int] = 10
     c: ParentTestConfig
 
@@ -46,8 +45,8 @@ class Pass:
         return f"Pass(a={self.a})"
 
 
-@configclass
-class MultiTypeConfig(ConfigBase):
+@config
+class MultiTypeConfig:
     a0: Derived[Literal["a", "b", "2"]] = "a"
     # a1: int = 10
     # a2: int = 10
@@ -66,55 +65,55 @@ class MultiTypeConfig(ConfigBase):
     a7: bool = True
 
 
-@configclass
-class ErrorConfigType(ConfigBase):
+@config
+class ErrorConfigType:
     a1: int = "2.2"
 
 
-@configclass
-class ErrorConfigHintOrder(ConfigBase):
+@config
+class ErrorConfigHintOrder:
     a4: Optional[Derived[str]] = "a"
 
 
-@configclass
-class ErrorConfigLiteral(ConfigBase):
+@config
+class ErrorConfigLiteral:
     a0: Derived[Literal["a", "b", "2"]] = 10
 
 
-@configclass
-class ErrorConfigNonAnnotated(ConfigBase):
+@config
+class ErrorConfigNonAnnotated:
     a10 = 10
 
 
-@configclass
-class ErrorConfigBadAnnotated(ConfigBase):
+@config
+class ErrorConfigBadAnnotated:
     # Should throw an error for Optional[Derived]
     a4: ty.Dict[str, str]
 
 
-@configclass
-class ErrorConfigBadAnnotatedTwo(ConfigBase):
+@config
+class ErrorConfigBadAnnotatedTwo:
     # Should throw an error for Optional[Derived]
     a4: ty.Optional[str]
 
 
-@configclass
-class ErrorConfigEnum(ConfigBase):
+@config
+class ErrorConfigEnum:
     a4: myEnum = "b"
 
 
-@configclass
-class ErrorConfigTuple(ConfigBase):
+@config
+class ErrorConfigTuple:
     a4: Tuple[int, str] = ("2.1", "a")
 
 
-@configclass
-class ErrorConfigTupleLen(ConfigBase):
+@config
+class ErrorConfigTupleLen:
     a4: Tuple[int, str] = (10, "a", "a")
 
 
-@configclass
-class ErrorConfigList(ConfigBase):
+@config
+class ErrorConfigList:
     a4: List[str] = "a"
 
 

@@ -1,5 +1,5 @@
 import re
-from config.main import ConfigBase, configclass
+from config.main import ConfigBase, config
 from config.search_space.main import (
     CategoricalDistribution,
     Distribution,
@@ -23,7 +23,7 @@ class Pass:
         return False
 
 
-@configclass
+@config
 class ChildConfig3(ConfigBase):
     c: int = 5
 
@@ -33,7 +33,7 @@ class Noop:
         pass
 
 
-@configclass
+@config
 class E(ConfigBase):
     c: float = 0.1
     d: int = 5
@@ -41,20 +41,20 @@ class E(ConfigBase):
     g: float = 2
 
 
-@configclass
+@config
 class B(ConfigBase):
     e: E = E()
     c: int = 5
     d: Noop = Noop()
 
 
-@configclass
+@config
 class A(ConfigBase):
     b: B = B()
     d: float = 0.5
 
 
-@configclass
+@config
 class Master(ConfigBase):
     a: A = A()
     d: float = 0.5

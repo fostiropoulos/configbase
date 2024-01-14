@@ -32,7 +32,7 @@ from config.utils import (
 )
 
 
-def configclass(cls: type["ConfigBase"]) -> type["ConfigBase"]:
+def config(cls: type["ConfigBase"]) -> type["ConfigBase"]:
     """
     Decorator for ``ConfigBase`` subclasses, adds the ``config_class`` attribute to the class.
 
@@ -47,8 +47,16 @@ def configclass(cls: type["ConfigBase"]) -> type["ConfigBase"]:
         The decorated class with the ``config_class`` attribute.
     """
 
-    assert issubclass(cls, ConfigBase), f"{cls.__name__} must inherit from ConfigBase"
+    if "__init__" in cls.__dict__:
+        raise ValueError("Can not over-ride protected function name `__init__`.")
+
+    for k, v in ConfigBase.__dict__.items():
+        if k not in cls.__dict__ and k != "__dict__":
+            # TODO swap inits
+            setattr(cls, k, v)
     setattr(cls, "config_class", cls)
+    setattr(cls, "_class_name", cls.__name__)
+
     return cls
 
 
@@ -59,7 +67,7 @@ def _freeze_helper(obj):
                 f"Can not set attribute {k} on a class of a frozen configuration"
                 f" ``{type(self).__name__}``."
             )
-        super(type(self), self).__setattr__(k, v)
+        object.__setattr__(self, k, v)
 
     try:
         obj._freeze = True  # pylint: disable=protected-access
@@ -78,7 +86,7 @@ def _unfreeze_helper(obj):
 def _parse_reconstructor(val, ignore_stateless: bool, flatten: bool):
     if isinstance(val, (int, float, bool, str, type(None))):
         return val
-    if issubclass(type(val), ConfigBase):
+    if hasattr(type(val), "config_class"):
         return val.make_dict(
             val.annotations, ignore_stateless=ignore_stateless, flatten=flatten
         )
@@ -98,17 +106,16 @@ class Missing:
     """
 
 
-# @dataclass(repr=False)
 class ConfigBase:
-    # NOTE: this allows for non-defined arguments to be created. It is very bug-prone and will be disabled.
     """
 
-    This class is the building block for all configuration objects within ablator. It serves as the base class for
+    This class is the building block for all configuration objects. It serves as the base class for
     configurations such as ``ModelConfig``, ``TrainConfig``, ``OptimizerConfig``, and more. Together with
     ``@configclass``, it allows for the creation of config classes of customized attributes without the need to
     define a constructor. ``ConfigBase`` and ``@configclass`` take care of the initialization and parsing of the
     attributes. The example section below shows this in more detail.
 
+    TODO update
     In summary, to customize configurations for specific needs, you can create your own configuration class by
     inheriting it from ``ConfigBase``. It's essential to annotate it with ``@configclass``. In the tutorial
     `Search space for different types of optimizers and scheduler
@@ -164,6 +171,7 @@ class ConfigBase:
     can also pass these arguments as keyword arguments.
 
     """
+
     config_class = type(None)
 
     def __init__(self, *args: Any, debug: bool = False, **kwargs: Any):
@@ -172,7 +180,6 @@ class ConfigBase:
         self._class_name: str
         self.__setattr__internal("_debug", debug)
         self.__setattr__internal("_freeze", False)
-        self.__setattr__internal("_class_name", type(self).__name__)
 
         missing_vals = self._validate_inputs(*args, debug=debug, **kwargs)
 
@@ -194,7 +201,7 @@ class ConfigBase:
 
             else:
                 try:
-                    setattr(self, k, v)
+                    self.__setattr__(k, v)
                 except Exception as e:  # pylint: disable=broad-exception-caught
                     if not debug:
                         raise e
@@ -264,7 +271,8 @@ class ConfigBase:
         return missing_vals
 
     def __setattr__internal(self, k, v):
-        super().__setattr__(k, v)
+        # super(self.config_class, self).__setattr__(k, v)
+        object.__setattr__(self, k, v)
 
     def __setattr__(self, k, v):
         if self._freeze:
@@ -331,8 +339,7 @@ class ConfigBase:
         Self
             The loaded configuration object.
         """
-        kwargs: dict = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
-        return cls(**kwargs, debug=debug)
+        return cls.from_yaml(Path(path).read_text(encoding="utf-8"), debug=debug)
 
     @property
     def annotations(self) -> dict[str, Annotation]:
@@ -455,7 +462,7 @@ class ConfigBase:
                 val = tuple(parse_reconstructor(_lval) for _lval in _val)
             elif annot.collection in [Dict]:
                 val = {k: parse_reconstructor(_dval) for k, _dval in _val.items()}
-            elif issubclass(type(_val), ConfigBase):
+            elif hasattr(type(_val), "config_class"):
                 val = _val.make_dict(
                     _val.annotations, ignore_stateless=ignore_stateless, flatten=flatten
                 )
@@ -486,6 +493,7 @@ class ConfigBase:
         """
         Path(path).write_text(self.to_yaml(), encoding="utf-8")
 
+    # pylint: disable=redefined-outer-name
     def diff_str(
         self, config: "ConfigBase", ignore_stateless: bool = False
     ) -> list[str]:
@@ -512,6 +520,7 @@ class ConfigBase:
             str_diffs.append(_diff)
         return str_diffs
 
+    # pylint: disable=redefined-outer-name
     def diff(
         self, config: "ConfigBase", ignore_stateless: bool = False
     ) -> list[tuple[str, tuple[type, Any], tuple[type, Any]]]:
@@ -614,6 +623,27 @@ class ConfigBase:
         """
         return yaml.dump(self.to_dict())
 
+    @classmethod
+    def from_yaml(cls, yaml_str: str, debug: bool = False) -> Self:
+        """
+        Load a configuration object from a yaml string.
+
+        Parameters
+        ----------
+        yaml_str : str
+            The yaml string to create a configuration object from.
+        debug : bool, optional
+            Whether to load the configuration in debug mode, and ignore discrepancies/errors,
+            by default ``False``.
+
+        Returns
+        -------
+        Self
+            The loaded configuration object.
+        """
+        kwargs: dict = yaml.safe_load(yaml_str)
+        return cls(**kwargs, debug=debug)
+
     def to_dot_path(self, ignore_stateless: bool = False) -> str:
         """
         Convert the configuration object to a dictionary with dot notation paths as keys.
@@ -672,7 +702,7 @@ class ConfigBase:
         for k, annot in self.annotations.items():
             if (
                 isinstance(annot.variable_type, type)
-                and not issubclass(annot.variable_type, ConfigBase)
+                and not hasattr(annot.variable_type, "config_class")
                 and getattr(self, k) is not None
                 and hasattr(getattr(self, k), "__setattr__")
             ):
@@ -685,14 +715,14 @@ class ConfigBase:
                 else:
                     _freeze_helper(getattr(self, k))
 
-    def _unfreeze(self):
+    def unfreeze(self):
         self.__setattr__internal("_freeze", False)
-        self._apply_lambda_recursively("_unfreeze")
+        self._apply_lambda_recursively("unfreeze")
 
         for k, annot in self.annotations.items():
             if (
                 isinstance(annot.variable_type, type)
-                and not issubclass(annot.variable_type, ConfigBase)
+                and not hasattr(annot.variable_type, "config_class")
                 and getattr(self, k) is not None
             ):
                 if annot.collection in [List, Tuple]:
@@ -708,7 +738,7 @@ class ConfigBase:
         for k, annot in self.annotations.items():
             if (
                 isinstance(annot.variable_type, type)
-                and issubclass(annot.variable_type, ConfigBase)
+                and hasattr(annot.variable_type, "config_class")
                 and getattr(self, k) is not None
             ):
                 if annot.collection in [List, Tuple]:
