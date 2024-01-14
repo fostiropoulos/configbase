@@ -1,8 +1,8 @@
-# ConfigBase ⚙️
+# ConfigBase ⚙️ A Machine Learning Configuration System
 
 <img src="assets/config.png" alt="logo" style="width:200px;"/>
 
-The goal is to simplify configuration for Machine Learning (ML) experiments. Configuration for ML experiments is mostly unsolved. It is cumbersome, error-prone and does not address the standard use-cases, for example HPO, and multi-node and multi-tenant enviroments. It builds on top of several pilars to address those problems.
+The goal is to simplify configuration for Machine Learning (ML) experiments. Configuration for ML experiments is mostly unsolved. It is cumbersome, error-prone and does not address the standard use-cases, for example HPO, and multi-node or multi-tenant enviroments. ConfigBase builds on top of several pilars to address those problems.
 
 1. [Strongly typed](https://en.wikipedia.org/wiki/Strong_and_weak_typing) configuration, with type resolution during run-time.
 2. Address need for custom types specific to ML experiments
@@ -39,10 +39,12 @@ class C:
 
 c = C(a=5)
 c.a
->>> 5
+# Output:
+5
 c.a=5.5
 c.a
->>> 5
+# Output:
+5
 ```
 
 ## Minimal Examples
@@ -63,13 +65,15 @@ class C:
 
 c = C(a={"a": 1})
 c.a.a
->>> 1
+# Output:
+1
 ```
 
 ### Object-Persistence
 ```python
 print(C.from_yaml(c.to_yaml()))
->>> C(a={'a': 1, 'b': 2}, b=5)
+# Output:
+C(a={'a': 1, 'b': 2}, b=5)
 ```
 
 
@@ -78,11 +82,13 @@ print(C.from_yaml(c.to_yaml()))
 ```python
 c.freeze()
 c.b=1
->>> RuntimeError: Can not set attribute b on frozen configuration ``C``.
+# Output:
+# RuntimeError: Can not set attribute b on frozen configuration ``C``.
 c.unfreeze()
 c.b=1
 c.b
->>> 1
+# Output:
+1
 ```
 
 ### Fingerprinting
@@ -95,13 +101,16 @@ class C:
     b: int = 5
 c = C()
 c.uid
->>> '1cf3'
+# Output:
+'1cf3'
 c.a=6
 c.uid
->>> '1cf3'
+# Output:
+'1cf3'
 c.a=5
 c.uid
->>> '51fd'
+# Output:
+'51fd'
 ```
 
 
@@ -128,7 +137,8 @@ space = SearchSpace(
 
 m = Master()
 m.sample(space)
->>> Master(a={'d': 0.0}, d=1.0)
+# Output:
+Master(a={'d': 0.0}, d=1.0)
 ```
 **Custom HPO Functions**
 
@@ -136,13 +146,28 @@ m.sample(space)
 def hpo_fn(name, dist: CategoricalDistribution | Distribution):
     return dist.random_sample()
 m.sample(space, sample_fn=hpo_fn)
->>> Master(a={'d': 0.5}, d=0.925)
+# Output:
+Master(a={'d': 0.5}, d=0.925)
 ```
 
 
 **Expand Search Space**
 ```python
-print(m.expand(space))
->>> [Master(a={'d': 0.0}, d=0.0), Master(a={'d': 0.0}, d=0.025), Master(a={'d': 0.0}, d=0.05), Master(a={'d': 0.0}, d=0.07500000000000001), Master(a={'d': 0.0}, d=0.1), Master(a={'d': 0.25}, d=0.0), Master(a={'d': 0.25}, d=0.025), Master(a={'d': 0.25}, d=0.05), Master(a={'d': 0.25}, d=0.07500000000000001), Master(a={'d': 0.25}, d=0.1), Master(a={'d': 0.5}, d=0.0), Master(a={'d': 0.5}, d=0.025), Master(a={'d': 0.5}, d=0.05), Master(a={'d': 0.5}, d=0.07500000000000001), Master(a={'d': 0.5}, d=0.1), Master(a={'d': 0.75}, d=0.0), Master(a={'d': 0.75}, d=0.025), Master(a={'d': 0.75}, d=0.05), Master(a={'d': 0.75}, d=0.07500000000000001), Master(a={'d': 0.75}, d=0.1), Master(a={'d': 1.0}, d=0.0), Master(a={'d': 1.0}, d=0.025), Master(a={'d': 1.0}, d=0.05), Master(a={'d': 1.0}, d=0.07500000000000001), Master(a={'d': 1.0}, d=0.1), Master(a={'d': 0.0}, d=0.9), Master(a={'d': 0.0}, d=0.925), Master(a={'d': 0.0}, d=0.95), Master(a={'d': 0.0}, d=0.975), Master(a={'d': 0.0}, d=1.0), Master(a={'d': 0.25}, d=0.9), Master(a={'d': 0.25}, d=0.925), Master(a={'d': 0.25}, d=0.95), Master(a={'d': 0.25}, d=0.975), Master(a={'d': 0.25}, d=1.0), Master(a={'d': 0.5}, d=0.9), Master(a={'d': 0.5}, d=0.925), Master(a={'d': 0.5}, d=0.95), Master(a={'d': 0.5}, d=0.975), Master(a={'d': 0.5}, d=1.0), Master(a={'d': 0.75}, d=0.9), Master(a={'d': 0.75}, d=0.925), Master(a={'d': 0.75}, d=0.95), Master(a={'d': 0.75}, d=0.975), Master(a={'d': 0.75}, d=1.0), Master(a={'d': 1.0}, d=0.9), Master(a={'d': 1.0}, d=0.925), Master(a={'d': 1.0}, d=0.95), Master(a={'d': 1.0}, d=0.975), Master(a={'d': 1.0}, d=1.0)]
 
+print(m.expand(space))
+# Output:
+[Master(a={'d': 0.0}, d=0.0), Master(a={'d': 0.0}, d=0.025), Master(a={'d': 0.0}, d=0.05), Master(a={'d': 0.0}, d=0.07500000000000001), Master(a={'d': 0.0}, d=0.1), Master(a={'d': 0.25}, d=0.0), Master(a={'d': 0.25}, d=0.025), Master(a={'d': 0.25}, d=0.05), Master(a={'d': 0.25}, d=0.07500000000000001), Master(a={'d': 0.25}, d=0.1), Master(a={'d': 0.5}, d=0.0), Master(a={'d': 0.5}, d=0.025), Master(a={'d': 0.5}, d=0.05), Master(a={'d': 0.5}, d=0.07500000000000001), Master(a={'d': 0.5}, d=0.1), Master(a={'d': 0.75}, d=0.0), Master(a={'d': 0.75}, d=0.025), Master(a={'d': 0.75}, d=0.05), Master(a={'d': 0.75}, d=0.07500000000000001), Master(a={'d': 0.75}, d=0.1), Master(a={'d': 1.0}, d=0.0), Master(a={'d': 1.0}, d=0.025), Master(a={'d': 1.0}, d=0.05), Master(a={'d': 1.0}, d=0.07500000000000001), Master(a={'d': 1.0}, d=0.1), Master(a={'d': 0.0}, d=0.9), Master(a={'d': 0.0}, d=0.925), Master(a={'d': 0.0}, d=0.95), Master(a={'d': 0.0}, d=0.975), Master(a={'d': 0.0}, d=1.0), Master(a={'d': 0.25}, d=0.9), Master(a={'d': 0.25}, d=0.925), Master(a={'d': 0.25}, d=0.95), Master(a={'d': 0.25}, d=0.975), Master(a={'d': 0.25}, d=1.0), Master(a={'d': 0.5}, d=0.9), Master(a={'d': 0.5}, d=0.925), Master(a={'d': 0.5}, d=0.95), Master(a={'d': 0.5}, d=0.975), Master(a={'d': 0.5}, d=1.0), Master(a={'d': 0.75}, d=0.9), Master(a={'d': 0.75}, d=0.925), Master(a={'d': 0.75}, d=0.95), Master(a={'d': 0.75}, d=0.975), Master(a={'d': 0.75}, d=1.0), Master(a={'d': 1.0}, d=0.9), Master(a={'d': 1.0}, d=0.925), Master(a={'d': 1.0}, d=0.95), Master(a={'d': 1.0}, d=0.975), Master(a={'d': 1.0}, d=1.0)]
+```
+
+## Cite
+
+```bibtex
+@misc{fostiropoulos2024configbase,
+  author = {Fostiropoulos, Iordanis},
+  title = {ConfigBase: A Machine Learning Configuration System },
+  year = {2024},
+  publisher = {GitHub},
+  journal = {GitHub repository},
+  howpublished = {\url{https://github.com/fostiropoulos/configbase}},
+}
 ```

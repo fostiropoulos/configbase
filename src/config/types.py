@@ -14,17 +14,16 @@ T = ty.TypeVar("T")
 class Dict(ty.Dict[str, T]):
     """
     A class for dictionary data type, with keys as strings. Used when you need to specify a config
-    attribute as a dictionary (in fact, ablator defines ``search_space`` as a dictionary of ``SearchSpace``
-    in config class ``ParallelConfig``). Remember to wrap the type of the dictionary elements in
+    attribute as a dictionary. Remember to wrap the type of the dictionary elements in
     ``Dict[]``, e.g ``Dict[str]`` is a dictionary which has string values, ``Dict[int]`` is a dictionary
-    which has integer values.
+    which has integer values. The keys are assumed to be strings.
 
     Examples
     --------
     You can declare an attribute of type ``Dict`` as follows:
 
-    >>> @configclass
-    >>> class MyConfig(ConfigBase):
+    >>> @config
+    >>> class MyConfig:
     >>>     my_str_dict: Dict[str]
     >>>     my_int_dict: Dict[int]
     >>>     my_space_dict: Dict[SearchSpace]
@@ -68,8 +67,8 @@ class List(ty.List[T]):
     --------
     You can declare an attribute of type ``List`` as follows:
 
-    >>> @configclass
-    >>> class MyConfig(ConfigBase):
+    >>> @config
+    >>> class MyConfig:
     >>>     my_str_list: List[str]  # list of strings
     >>>     my_int_list: List[int]  # list of integers
 
@@ -100,8 +99,8 @@ class Tuple(ty.Tuple[T]):
     --------
     You can declare an attribute of type ``Tuple`` as follows:
 
-    >>> @configclass
-    >>> class MyConfig(ConfigBase):
+    >>> @config
+    >>> class MyConfig:
     >>>     my_str_int_tuple: Tuple[str, int]   # Tuple of a string and an integer
     >>>     my_2str_int_tuple: Tuple[str, int, str]   # Tuple of a string, an integer, and a string
 
@@ -126,15 +125,14 @@ class Tuple(ty.Tuple[T]):
 class Optional(ty.Generic[T]):
     """
     A class for optional data types. This is helpful when a config attribute is optional,
-    meaning that we can leave an optional config attribute empty. (In fact, ablator defines
-    ``scheduler_config`` as optional in the config class ``TrainConfig``).
+    meaning that we can leave an optional config attribute empty.
 
     Examples
     --------
     You can declare an attribute of type ``Optional`` as follows:
 
-    >>> @configclass
-    >>> class MyConfig(ConfigBase):
+    >>> @config
+    >>> class MyConfig:
     >>>     my_optional_list: Optional[List[str]]
 
     When initializing a config object, you can pass a ``List[str]`` value to ``my_optional_list``, or not passing
@@ -161,9 +159,7 @@ Literal = ty.Literal
 class Enum(_Enum):
     """
     A custom Enum class that provides additional equality and hashing methods. This is useful when creating
-    custom data types that take as value elements from a fixed set. In ablator, we use ``Enum`` to define
-    ``Optim``, which specifies the optimization direction: ``Optim.min`` or ``Optim.max``. ``Optim`` is then
-    used in config class ``RunConfig`` (``optim_metrics`` attribute).
+    custom data types that take as value elements from a fixed set.
 
     Examples
     --------
@@ -178,8 +174,8 @@ class Enum(_Enum):
     ``RED``, ``GREEN``, and ``BLUE`` are fixed value set for Color type. Internally, these values are
     mapped to integers 1, 2, and 3. The custom data type ``Color`` can now be used in config classes:
 
-    >>> @configclass
-    >>> class MyConfig(ConfigBase):
+    >>> @config
+    >>> class MyConfig:
     >>>     my_color: Color
     >>> MyConfig(my_color=Color.RED)
     MyConfig(my_color=1)
@@ -617,8 +613,8 @@ class Stateful(ty.Generic[T]):
     The below example defines a model config that has stateful embedding dimensions, which means that in
     every experiment, the embedding dimension must be the same.
 
-    >>> @configclass
-    >>> class MyModelConfig(ModelConfig):
+    >>> @config
+    >>> class MyModelConfig:
     >>>     embed_dim: int
     >>> model_config = MyModelConfig(embed_dim=100)  # Must provide values for ``embed_dim`` before launching experiment
 
@@ -646,8 +642,8 @@ class Derived(ty.Generic[T]):
     of the embedding length of each pre-trained set of word embeddings. In this case, the model architecture
     is derived from the pre-trained word embeddings. So you can define a model config class as follows:
 
-    >>> @configclass
-    >>> class MyModelConfig(ModelConfig):
+    >>> @config
+    >>> class MyModelConfig:
     >>>     embed_dim: Derived[int]
 
     Then you can define a model class that takes in the model config as input and set input length using ``embed_dim``:
@@ -680,8 +676,8 @@ class Stateless(ty.Generic[T]):
     Examples
     --------
 
-    >>> @configclass
-    >>> class MyModelConfig(ConfigBase):
+    >>> @config
+    >>> class MyModelConfig:
     >>>     attr: Stateless[List[int]]
     >>> config = MyModelConfig(attr=[5,"6",7.25])  # Must provide values for ``attr`` before launching experiment
 

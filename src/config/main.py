@@ -32,18 +32,25 @@ from config.utils import (
 )
 
 
-def config(cls: type["ConfigBase"]) -> type["ConfigBase"]:
+def config(cls: type) -> type:
     """
-    Decorator for ``ConfigBase`` subclasses, adds the ``config_class`` attribute to the class.
+    Decorator to turn any class into a ``ConfigBase`` object, copies attributes from the
+    ``ConfigBase`` class into the decorated class. The decorated class must not implement
+    an ``__init__`` function.
 
     Parameters
     ----------
-    cls : type["ConfigBase"]
+    cls : type
         The class to be decorated.
+
+    Raises
+    ------
+    ValueError
+        When the ``__init__`` function is implemented in the decorated class.
 
     Returns
     -------
-    type[ConfigBase]
+    type
         The decorated class with the ``config_class`` attribute.
     """
 
@@ -52,7 +59,6 @@ def config(cls: type["ConfigBase"]) -> type["ConfigBase"]:
 
     for k, v in ConfigBase.__dict__.items():
         if k not in cls.__dict__ and k != "__dict__":
-            # TODO swap inits
             setattr(cls, k, v)
     setattr(cls, "config_class", cls)
     setattr(cls, "_class_name", cls.__name__)
@@ -64,8 +70,7 @@ def _freeze_helper(obj):
     def __setattr__(self, k, v):
         if getattr(self, "_freeze", False):
             raise RuntimeError(
-                f"Can not set attribute {k} on a class of a frozen configuration"
-                f" ``{type(self).__name__}``."
+                f"Can not set attribute {k} on a class of a frozen configuration ``{type(self).__name__}``."
             )
         object.__setattr__(self, k, v)
 
@@ -87,9 +92,7 @@ def _parse_reconstructor(val, ignore_stateless: bool, flatten: bool):
     if isinstance(val, (int, float, bool, str, type(None))):
         return val
     if hasattr(type(val), "config_class"):
-        return val.make_dict(
-            val.annotations, ignore_stateless=ignore_stateless, flatten=flatten
-        )
+        return val.make_dict(val.annotations, ignore_stateless=ignore_stateless, flatten=flatten)
     if issubclass(type(val), Enum):
         return val.value
     args, kwargs = parse_repr_to_kwargs(val)
@@ -110,21 +113,10 @@ class ConfigBase:
     """
 
     This class is the building block for all configuration objects. It serves as the base class for
-    configurations such as ``ModelConfig``, ``TrainConfig``, ``OptimizerConfig``, and more. Together with
-    ``@configclass``, it allows for the creation of config classes of customized attributes without the need to
-    define a constructor. ``ConfigBase`` and ``@configclass`` take care of the initialization and parsing of the
-    attributes. The example section below shows this in more detail.
-
-    TODO update
-    In summary, to customize configurations for specific needs, you can create your own configuration class by
-    inheriting it from ``ConfigBase``. It's essential to annotate it with ``@configclass``. In the tutorial
-    `Search space for different types of optimizers and scheduler
-    <./notebooks/Searchspace-for-diff-optimizers.ipynb>`_, a custom optimizer config class is created to enable
-    ablation study on various optimizers and schedulers. You can refer to this tutorial for a realistic example of
-    how to create your custom configuration class.
+    configurations. It is used by the ``@config`` decorator, and allows for the creation of config classes. ``@config`` take care of the initialization and parsing of the attributes. Users should **not** directly inherit from this class and directly use ``@config`` dectorator. The example section below shows this in more detail.
 
     .. note::
-        One key takeaway is that when initializing a config object, you can look into the list of attributes defined
+        When initializing a config object, you can look into the list of attributes defined
         in the config class to see what arguments you can pass.
 
     Parameters
@@ -149,16 +141,16 @@ class ConfigBase:
     KeyError
         If unexpected arguments are provided.
     RuntimeError
-        If the class is not decorated with ``@configclass``.
+        If the class is not decorated with ``@config``.
 
     .. note::
-       All config classes must be decorated with ``@configclass``.
+       All config classes must be decorated with ``@config``.
 
     Examples
     --------
 
-    >>> @configclass
-    >>> class MyCustomConfig(ConfigBase):
+    >>> @config
+    >>> class MyCustomConfig:
     ...     attr1: int = 1
     ...     attr2: Tuple[str, int, str]
     >>> my_config = MyCustomConfig(attr1=4, attr2=("hello", 1, "world"))  # Pass by named arguments
@@ -166,8 +158,8 @@ class ConfigBase:
     >>> my_config = MyCustomConfig(**kwargs)
 
     Note that since we defined ``MyCustomConfig`` as a config class with two annotated attributes ``attr1``
-    and ``attr2`` (without a constructor, which is automatically handled by ``ConfigBase`` and
-    ``@configclass``), when creating the config object, you can directly pass ``attr1`` and ``attr2``. You
+    and ``attr2`` (without a constructor, which is automatically handled by
+    ``@config``), when creating the config object, you can directly pass ``attr1`` and ``attr2``. You
     can also pass these arguments as keyword arguments.
 
     """
@@ -192,8 +184,7 @@ class ConfigBase:
                 v = getattr(self, k, None)
             if k in missing_vals:
                 logging.warning(
-                    "Loading %s in `debug` mode. Setting missing required value %s to"
-                    " `None`.",
+                    "Loading %s in `debug` mode. Setting missing required value %s to `None`.",
                     self._class_name,
                     k,
                 )
@@ -206,8 +197,7 @@ class ConfigBase:
                     if not debug:
                         raise e
                     logging.warning(
-                        "Loading %s in `debug` mode. Unable to parse `%s` value %s."
-                        " Setting to `None`.",
+                        "Loading %s in `debug` mode. Unable to parse `%s` value %s. Setting to `None`.",
                         self._class_name,
                         k,
                         v,
@@ -232,26 +222,13 @@ class ConfigBase:
             if not inspect.isfunction(item[1]) and not item[0].startswith("_")
         }
 
-        base_variables = {
-            item[0]
-            for item in inspect.getmembers(ConfigBase)
-            if not inspect.isfunction(item[1])
-        }
-        non_annotated_variables = (
-            added_variables - base_variables - set(self.annotations.keys())
-        )
-        assert (
-            len(non_annotated_variables) == 0
-        ), f"All variables must be annotated. {non_annotated_variables}"
+        base_variables = {item[0] for item in inspect.getmembers(ConfigBase) if not inspect.isfunction(item[1])}
+        non_annotated_variables = added_variables - base_variables - set(self.annotations.keys())
+        assert len(non_annotated_variables) == 0, f"All variables must be annotated. {non_annotated_variables}"
         if len(args) > 0:
-            raise ValueError(
-                f"{self._class_name} does not support positional arguments."
-            )
+            raise ValueError(f"{self._class_name} does not support positional arguments.")
         if not isinstance(self, self.config_class):  # type: ignore[arg-type]
-            raise RuntimeError(
-                f"You must decorate your Config class '{self._class_name}' with"
-                " ablator.configclass."
-            )
+            raise RuntimeError(f"You must decorate your Config class '{self._class_name}' with ``@config``.")
         missing_vals = self._validate_missing(**kwargs)
         if len(missing_vals) != 0 and not debug:
             raise ValueError(f"Missing required values {missing_vals}.")
@@ -263,10 +240,7 @@ class ConfigBase:
             if not annotation.optional and annotation.state not in [Derived]:
                 # make sure non-optional and derived values are not empty or
                 # without a default assignment
-                if not (
-                    (k in kwargs and kwargs[k] is not None)
-                    or getattr(self, k, None) is not None
-                ):
+                if not ((k in kwargs and kwargs[k] is not None) or getattr(self, k, None) is not None):
                     missing_vals.append(k)
         return missing_vals
 
@@ -276,10 +250,7 @@ class ConfigBase:
 
     def __setattr__(self, k, v):
         if self._freeze:
-            raise RuntimeError(
-                f"Can not set attribute {k} on frozen configuration"
-                f" ``{type(self).__name__}``."
-            )
+            raise RuntimeError(f"Can not set attribute {k} on frozen configuration ``{type(self).__name__}``.")
         annotation = self.annotations[k]
         v = parse_value(v, annotation, k, self._debug)
         self.__setattr__internal(k, v)
@@ -303,23 +274,22 @@ class ConfigBase:
         return (
             self._class_name
             + "("
-            + ", ".join([
-                f"{k}='{v}'" if isinstance(v, str) else f"{k}={v.__repr__()}"
-                for k, v in self.to_dict().items()
-            ])
+            + ", ".join(
+                [f"{k}='{v}'" if isinstance(v, str) else f"{k}={v.__repr__()}" for k, v in self.to_dict().items()]
+            )
             + ")"
         )
 
-    def keys(self) -> abc.KeysView[str]:
+    def keys(self) -> list[str]:
         """
         Get the keys of the configuration dictionary.
 
         Returns
         -------
-        abc.KeysView[str]
+        list[str]
             The keys of the configuration dictionary.
         """
-        return self.to_dict().keys()
+        return list(self.to_dict().keys())
 
     @classmethod
     def load(cls, path: Union[Path, str], debug: bool = False) -> Self:
@@ -353,11 +323,9 @@ class ConfigBase:
         """
         annotations = {}
         if hasattr(self, "__annotations__"):
-            annotation_types = ChainMap(*(
-                c.__annotations__
-                for c in type(self).__mro__
-                if "__annotations__" in c.__dict__
-            ))
+            annotation_types = ChainMap(
+                *(c.__annotations__ for c in type(self).__mro__ if "__annotations__" in c.__dict__)
+            )
             annotations = {
                 field_name: parse_type_hint(type(self), annotation)
                 for field_name, annotation in annotation_types.items()
@@ -446,9 +414,7 @@ class ConfigBase:
             If the type of annot.collection is not supported.
         """
         return_dict = {}
-        parse_reconstructor = partial(
-            _parse_reconstructor, ignore_stateless=ignore_stateless, flatten=flatten
-        )
+        parse_reconstructor = partial(_parse_reconstructor, ignore_stateless=ignore_stateless, flatten=flatten)
         for field_name, annot in annotations.items():
             if ignore_stateless and (annot.state in {Stateless, Derived}):
                 continue
@@ -463,9 +429,7 @@ class ConfigBase:
             elif annot.collection in [Dict]:
                 val = {k: parse_reconstructor(_dval) for k, _dval in _val.items()}
             elif hasattr(type(_val), "config_class"):
-                val = _val.make_dict(
-                    _val.annotations, ignore_stateless=ignore_stateless, flatten=flatten
-                )
+                val = _val.make_dict(_val.annotations, ignore_stateless=ignore_stateless, flatten=flatten)
 
             elif annot.collection == Type:
                 if annot.optional and _val is None:
@@ -494,9 +458,7 @@ class ConfigBase:
         Path(path).write_text(self.to_yaml(), encoding="utf-8")
 
     # pylint: disable=redefined-outer-name
-    def diff_str(
-        self, config: "ConfigBase", ignore_stateless: bool = False
-    ) -> list[str]:
+    def diff_str(self, config: "ConfigBase", ignore_stateless: bool = False) -> list[str]:
         """
         Get the differences between the current configuration object and another configuration object as strings.
 
@@ -563,13 +525,9 @@ class ConfigBase:
         """
         left_config = copy.deepcopy(self)
         right_config = copy.deepcopy(config)
-        left_dict = left_config.make_dict(
-            left_config.annotations, ignore_stateless=ignore_stateless, flatten=True
-        )
+        left_dict = left_config.make_dict(left_config.annotations, ignore_stateless=ignore_stateless, flatten=True)
 
-        right_dict = right_config.make_dict(
-            right_config.annotations, ignore_stateless=ignore_stateless, flatten=True
-        )
+        right_dict = right_config.make_dict(right_config.annotations, ignore_stateless=ignore_stateless, flatten=True)
         left_keys = set(left_dict.keys())
         right_keys = set(right_dict.keys())
         diffs: list[tuple[str, tuple[type, ty.Any], tuple[type, ty.Any]]] = []
@@ -584,9 +542,7 @@ class ConfigBase:
                 left_type = type(left_v)
                 diffs.append((k, (left_type, left_v), (Missing, None)))
 
-            elif left_dict[k] != right_dict[k] or not isinstance(
-                left_dict[k], type(right_dict[k])
-            ):
+            elif left_dict[k] != right_dict[k] or not isinstance(left_dict[k], type(right_dict[k])):
                 right_v = right_dict[k]
                 left_v = left_dict[k]
                 left_type = type(left_v)
@@ -659,9 +615,7 @@ class ConfigBase:
             The YAML representation of the configuration object in dot notation paths.
 
         """
-        _flat_dict = self.make_dict(
-            self.annotations, ignore_stateless=ignore_stateless, flatten=True
-        )
+        _flat_dict = self.make_dict(self.annotations, ignore_stateless=ignore_stateless, flatten=True)
         return yaml.dump(_flat_dict)
 
     @property
@@ -689,13 +643,15 @@ class ConfigBase:
         """
         for k, annot in self.annotations.items():
             if not annot.optional and getattr(self, k) is None:
-                raise RuntimeError(
-                    f"Ambiguous configuration `{self._class_name}`. Must provide value"
-                    f" for {k}"
-                )
+                raise RuntimeError(f"Ambiguous configuration `{self._class_name}`. Must provide value for {k}")
         self._apply_lambda_recursively("assert_unambigious")
 
     def freeze(self):
+        """
+        Freezes the configuration attributes, such that they can no longer be changed.
+        It freezes all attributes recursively of the current and nested objects. Attempting
+        to change the value of any item belonging to the configuration will result in an error.
+        """
         self.__setattr__internal("_freeze", True)
         self._apply_lambda_recursively("freeze")
 
@@ -716,6 +672,11 @@ class ConfigBase:
                     _freeze_helper(getattr(self, k))
 
     def unfreeze(self):
+        """
+        Unfreezes the configuration attributes, such that they can now be modified.
+        The attributes are unfreezed recursively. Unfreezing an unfrozen configuration,
+        leads to no changes.
+        """
         self.__setattr__internal("_freeze", False)
         self._apply_lambda_recursively("unfreeze")
 
@@ -751,17 +712,89 @@ class ConfigBase:
                     getattr(getattr(self, k), lam)(*args)
 
     def expand(self, search_space) -> list[Self]:
+        """
+        Expands as the cartesian product of all possible configurable attributes. The resulting
+        configuration can be seen as a grid-space of the configurations. The granularity of the
+        search space is controlled via the ``n_bins`` argument of each ``Distribution`` as well
+        as the number of choices for ``CategoricalDistribution``.
+
+        Any values not present in the ``search_space`` will maintain their default value assignment.
+
+        .. note::
+            The number of items returned by this function grows exponentially with respect to
+            the number of Distributions in the ``search_space`` and their distinct values, i.e.
+            ``n_bins``.
+
+        Parameters
+        ----------
+        search_space : SearchSpace
+            The search space from which to expand the current configuration.
+
+        Returns
+        -------
+        list[Self]
+            A list of configurations where the difference between objects is specified by the ``search_space``
+
+        Examples
+        --------
+        >>> @config
+        >>> class MyCustomConfig:
+        ...     attr1: int = 1
+        ...     attr2: float = 2
+        >>> space = SearchSpace(
+        ...    {
+        ...        "attr1": Distribution(0, 1, n_bins=4),
+        ...        "attr2": CategoricalDistribution([0,1,2,3,4]),
+        ...    }
+        ... )
+        >>> my_config = MyCustomConfig()
+        >>> my_config.expand(space)
+        [MyCustomConfig(attr1=0, attr2=0.0), MyCustomConfig(attr1=0, attr2=0.0), MyCustomConfig(attr1=1, attr2=0.0), MyCustomConfig(attr1=0, attr2=4.0), MyCustomConfig(attr1=0, attr2=4.0), MyCustomConfig(attr1=1, attr2=4.0)]
+
+        """
         out_list = []
         for dot_paths in search_space.expand():
-            kwargs = augment_trial_kwargs(
-                trial_kwargs=self.to_dict(), augmentation=dot_paths
-            )
+            kwargs = augment_trial_kwargs(trial_kwargs=self.to_dict(), augmentation=dot_paths)
             out_list.append(type(self)(**kwargs))
         return out_list
 
-    def sample(self, search_space, sample_fn=None) -> Self:
+    def sample(self, search_space, sample_fn: abc.Callable | None = None) -> Self:
+        """
+        Samples values from the ``search_space`` distributions and initializes a new
+        configuration object where the difference from the current object are only
+        for the sampled values. Optionally, a ``sample_fn`` can be specified that can be
+        used to select values from each distribution. The ``sample_fn`` can be an HPO algorithm
+        or another heuristic in sampling configurations.
+
+        Parameters
+        ----------
+        search_space : SearchSpace
+            The search space from which to sample a new configuration.
+        sample_fn : abc.Callable | None, optional
+            The function that can be used to sample values from each distribution. When left
+            unspecified, the sampling is uniformly random, by default None
+
+        Returns
+        -------
+        Self
+            A sampled configuration object
+
+        Examples
+        --------
+        >>> @config
+        >>> class MyCustomConfig:
+        ...     attr1: int = 1
+        ...     attr2: float = 2
+        >>> space = SearchSpace(
+        ...    {
+        ...        "attr1": Distribution(0, 1, n_bins=4),
+        ...        "attr2": CategoricalDistribution([0,1,2,3,4]),
+        ...    }
+        ... )
+        >>> my_config = MyCustomConfig()
+        >>> my_config.sample(space)
+        MyCustomConfig(attr1=0, attr2=4.0)
+        """
         dot_paths = search_space.sample(sample_fn=sample_fn)
-        kwargs = augment_trial_kwargs(
-            trial_kwargs=self.to_dict(), augmentation=dot_paths
-        )
+        kwargs = augment_trial_kwargs(trial_kwargs=self.to_dict(), augmentation=dot_paths)
         return type(self)(**kwargs)
