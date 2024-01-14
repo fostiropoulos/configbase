@@ -36,6 +36,14 @@ class Distribution:
         When low>=high
     ValueError
         When `log_scale` is ``True`` but low is not >= 0
+
+    Examples
+    --------
+    >>> d = Distribution(0,10,n_bins=4)
+    >>> d.random_sample()
+    7.5
+    >>> d.expand()
+    [0.0, 2.5, 5.0, 7.5, 10.0]
     """
 
     low: int | float
@@ -110,6 +118,15 @@ class CategoricalDistribution:
     ------
     ValueError
         When choices does not contain any elements.
+
+    Examples
+    --------
+    >>> d = CategoricalDistribution([0,"a",{"k":"v"}])
+    >>> d.random_sample()
+    'a'
+    >>> d.expand()
+    [0, 'a', {'k': 'v'}]
+
     """
 
     choices: list
@@ -134,9 +151,44 @@ class CategoricalDistribution:
 
 
 class SearchSpace:
+    """
+    A SearchSpace encapsulates the logic of a configuration that for **some** fields,
+    can take several value assignments. For example, a configuration can take different
+    value assignments for an optimizer. This class defines the search space over which
+    we can ``config.expand`` or ``config.sample`` configurations.
+
+    Parameters
+    ----------
+    search_space : dict[str, Distribution  |  CategoricalDistribution]
+        The keys represent the corresponding configuration field name where the
+        values correspond to the Distribution of the corresponding key. A user
+        should only define the keys for which they wish to allocate a different
+        distribution. For nested objects the keys must be in ``dot_path`` notation.
+
+    Examples
+    --------
+    >>> @config
+    ... class A:
+    ...    d: float = 0.5
+    >>> @config
+    ... class Master:
+    ...    a: A = A()
+    ...    d: float = 0.5
+    >>> space = SearchSpace(
+    ...    {
+    ...        "a.d": Distribution(0, 1, n_bins=4),
+    ...        "d": CategoricalDistribution([Distribution(0, 0.1, n_bins=4), Distribution(0.9, 1, n_bins=4)]),
+    ...    }
+    ... )
+    >>> m = Master()
+    >>> m.sample(space)
+    Master(a={'d': 0.0}, d=1.0)
+    """
+
     def __init__(
         self, search_space: dict[str, Distribution | CategoricalDistribution]
     ) -> None:
+
         self.search_space = search_space
 
     def expand(self):
