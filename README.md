@@ -1,6 +1,19 @@
 # ConfigBase ⚙️ A Machine Learning Configuration System
 
-<img src="assets/config.png" alt="logo" style="width:200px;"/>
+
+<table border="0" >
+<tr>
+   <td>
+   <img src="assets/config.png" alt="logo" style="width:200px;"/>
+   </td>
+   <td>
+      
+   [![codecov](https://codecov.io/gh/fostiropoulos/configbase/graph/badge.svg?token=73OXED4M9S)](https://codecov.io/gh/fostiropoulos/configbase) [![Tests](https://github.com/fostiropoulos/configbase/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/fostiropoulos/configbase/actions/workflows/test.yml)
+   [![Static Analysis](https://github.com/fostiropoulos/configbase/actions/workflows/static_analysis.yml/badge.svg)](https://github.com/fostiropoulos/configbase/actions/workflows/static_analysis.yml)
+      
+   </td>
+</tr>
+</table>
 
 The goal is to simplify configuration for Machine Learning (ML) experiments. Configuration for ML experiments is mostly unsolved. It is cumbersome, error-prone and does not address the standard use-cases, for example HPO, and multi-node or multi-tenant enviroments. ConfigBase builds on top of several pilars to address those problems.
 
