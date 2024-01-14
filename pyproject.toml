@@ -37,7 +37,7 @@ dev = [
 ]
 [project.urls]
 
-homepage = "https://iordanis.me"
+homepage = "https://github.com/fostiropoulos/configbase"
 
 [tool.setuptools.dynamic]
 version = { attr = "config.__version__" }
